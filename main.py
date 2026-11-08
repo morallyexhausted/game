@@ -1,4 +1,4 @@
-"""Консольная игра 2048 без сторонних библиотек."""
+"""Основная логика игры 2048."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class RandomSource(Protocol):
 
 
 class Board:
-    """Хранит поле и выполняет все операции с плитками."""
+    """Хранит поле и выполняет операции с плитками."""
 
     def __init__(self, size: int = DEFAULT_SIZE, rng: RandomSource | None = None) -> None:
         self.size = size
@@ -40,8 +40,12 @@ class Board:
             if self._cells[row][column] == 0
         ]
 
+    def value_at(self, row: int, column: int) -> int:
+        """Возвращает значение плитки для отображения в интерфейсе."""
+        return self._cells[row][column]
+
     def copy(self) -> Board:
-        """Создаёт копию поля для функции отмены хода."""
+        """Создаёт копию поля для отмены хода."""
         copied_board = Board(self.size, self._rng)
         copied_board._cells = [row[:] for row in self._cells]
         return copied_board
@@ -53,8 +57,20 @@ class Board:
         row, column = self._rng.choice(self.empty_cells)
         self._cells[row][column] = 4 if self._rng.random() < 0.1 else 2
 
+    def remove_tile(self, row: int, column: int) -> bool:
+        """Удаляет плитку молотком и сообщает, был ли ход успешным."""
+        if not (0 <= row < self.size and 0 <= column < self.size):
+            return False
+        if self._cells[row][column] == 0:
+            return False
+        self._cells[row][column] = 0
+        return True
+
     def move(self, direction: str) -> tuple[bool, int]:
-        """Сдвигает плитки, возвращая (было ли изменение, сколько очков получено)."""
+        """Сдвигает плитки и возвращает (изменение, полученные очки)."""
+        if direction not in COMMANDS:
+            return False, 0
+
         old_cells = [row[:] for row in self._cells]
         gained_score = 0
 
@@ -67,9 +83,7 @@ class Board:
                 self._cells[row][column] = value
 
         changed = self._cells != old_cells
-        if not changed:
-            return False, 0
-        return True, gained_score
+        return changed, gained_score if changed else 0
 
     def has_won(self, target: int = DEFAULT_TARGET) -> bool:
         return any(value >= target for row in self._cells for value in row)
@@ -88,7 +102,7 @@ class Board:
         return False
 
     def render(self) -> str:
-        """Возвращает красивое текстовое представление поля."""
+        """Возвращает текстовое представление поля для отладки и консоли."""
         width = max(4, max((len(str(value)) for row in self._cells for value in row), default=1))
         border = "+" + "+".join("-" * (width + 2) for _ in range(self.size)) + "+"
         rows = [border]
@@ -134,95 +148,116 @@ class GameConfig:
     target: int
 
 
+@dataclass
+class GameSnapshot:
+    board: Board
+    score: int
+    hammer_available: bool
+    won_message_shown: bool
+
+
 class Game:
-    """Игровой цикл, очки, отмена хода и повторная игра."""
+    """Правила игры, очки, отмена хода и молоток."""
 
     def __init__(self, config: GameConfig, rng: RandomSource | None = None) -> None:
         self.config = config
         self._rng = rng or random
+        self.best_score = 0
+        self.history: list[GameSnapshot] = []
         self.board = Board(config.size, self._rng)
         self.score = 0
-        self.best_score = 0
-        self.history: list[tuple[Board, int]] = []
+        self.hammer_available = True
         self.won_message_shown = False
-        self._start_board()
+        self.new_game()
 
-    def _start_board(self) -> None:
+    def new_game(self) -> None:
+        """Начинает раунд, сохраняя рекорд текущего запуска."""
         self.board = Board(self.config.size, self._rng)
         self.score = 0
         self.history.clear()
+        self.hammer_available = True
         self.won_message_shown = False
         for _ in range(START_TILES):
             self.board.add_random_tile()
 
-    def play_command(self, command: str) -> str:
-        """Обрабатывает одну команду и возвращает сообщение для пользователя."""
-        if command == "u":
-            if not self.history:
-                return "Отменять пока нечего."
-            self.board, self.score = self.history.pop()
-            return "Последний ход отменён."
+    def move(self, direction: str) -> str:
+        """Обрабатывает ход клавишами W/A/S/D."""
+        if direction not in COMMANDS:
+            return "Неизвестное направление. Используйте W, A, S или D."
 
-        if command == "n":
-            self._start_board()
-            return "Начата новая игра."
-
-        if command not in COMMANDS:
-            return "Неизвестная команда. Используйте W, A, S, D, U, N или Q."
-
-        previous_board = self.board.copy()
-        previous_score = self.score
-        changed, gained_score = self.board.move(command)
+        snapshot = self._snapshot()
+        changed, gained_score = self.board.move(direction)
         if not changed:
             return "В эту сторону сдвинуть плитки нельзя."
 
-        self.history.append((previous_board, previous_score))
+        self.history.append(snapshot)
         self.score += gained_score
         self.best_score = max(self.best_score, self.score)
         self.board.add_random_tile()
         return self._state_message()
 
+    def use_hammer(self, row: int, column: int) -> str:
+        """Удаляет одну выбранную плитку, если молоток ещё доступен."""
+        if not self.hammer_available:
+            return "Молоток уже использован в этой игре."
+        if not (0 <= row < self.config.size and 0 <= column < self.config.size):
+            return "Выберите клетку на игровом поле."
+        if self.board.value_at(row, column) == 0:
+            return "Выберите занятую клетку."
+
+        snapshot = self._snapshot()
+        self.board.remove_tile(row, column)
+        self.history.append(snapshot)
+        self.hammer_available = False
+        return self._state_message()
+
+    def undo(self) -> str:
+        """Отменяет последний обычный ход или использование молотка."""
+        if not self.history:
+            return "Отменять пока нечего."
+
+        snapshot = self.history.pop()
+        self.board = snapshot.board
+        self.score = snapshot.score
+        self.hammer_available = snapshot.hammer_available
+        self.won_message_shown = snapshot.won_message_shown
+        return "Последний ход отменён."
+
+    @property
+    def is_game_over(self) -> bool:
+        return not self.board.can_move()
+
+    def play_command(self, command: str) -> str:
+        """Оставляет простой текстовый интерфейс для проверки логики."""
+        if command == "u":
+            return self.undo()
+        if command == "n":
+            self.new_game()
+            return "Начата новая игра."
+        return self.move(command)
+
+    def _snapshot(self) -> GameSnapshot:
+        return GameSnapshot(
+            board=self.board.copy(),
+            score=self.score,
+            hammer_available=self.hammer_available,
+            won_message_shown=self.won_message_shown,
+        )
+
     def _state_message(self) -> str:
         if self.board.has_won(self.config.target) and not self.won_message_shown:
             self.won_message_shown = True
             return f"Поздравляем! Вы собрали {self.config.target}. Можно продолжить игру."
-        if not self.board.can_move():
-            return "Ходы закончились. Нажмите N для новой игры или Q для выхода."
+        if self.is_game_over:
+            return "Ходы закончились. Используйте молоток или начните новую игру."
         return "Ход принят."
-
-    def run(self) -> None:
-        print("\n=== 2048 ===")
-        print(f"Соберите плитку {self.config.target}.")
-
-        while True:
-            print("\n" + self.board.render())
-            print(f"Очки: {self.score} | Рекорд: {self.best_score}")
-            print("W/A/S/D — ход, U — отмена, N — новая игра, Q — выход")
-            command = input("Команда: ").strip().lower()
-            if command == "q":
-                print("Спасибо за игру!")
-                return
-            print(self.play_command(command))
-
-
-def choose_config() -> GameConfig:
-    print("Выберите размер поля:")
-    print("1 — 4x4, цель 2048")
-    print("2 — 5x5, цель 4096")
-    while True:
-        choice = input("Ваш выбор: ").strip()
-        if choice == "1":
-            return GameConfig(DEFAULT_SIZE, DEFAULT_TARGET)
-        if choice == "2":
-            return GameConfig(LARGE_SIZE, LARGE_TARGET)
-        print("Введите 1 или 2.")
 
 
 def main() -> None:
-    try:
-        Game(choose_config()).run()
-    except (KeyboardInterrupt, EOFError):
-        print("\nИгра завершена.")
+    """Запускает оконный интерфейс."""
+    from gui import GameApp
+
+    GameApp().run()
 
 
 if __name__ == "__main__":
