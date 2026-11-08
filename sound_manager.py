@@ -31,7 +31,7 @@ class SoundManager:
         """
         pygame.mixer.init()
 
-        # Звук выстрела игрока
+        # Звук выстрела
         self.shot_sound = load_sound(
             BULLET_SHOT_SOUND, BULLET_SHOT_SOUND_VOLUME
         )
