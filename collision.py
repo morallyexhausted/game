@@ -18,7 +18,7 @@ def check_enemy_player_collisions(enemies: List["Enemy"], player: "Player") -> N
     if not player.alive:
         return
     for enemy in enemies:
-        # Если враг жив и соприкасается с физическим телом игрока
+        # Если враг жив и соприкасается с физическим телом
         if enemy.is_alive and enemy.hits_circle(
             player.x, player.y, PLAYER_RADIUS
         ):
