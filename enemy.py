@@ -80,7 +80,7 @@ class Enemy(CircleEntity):
             return
         # Поворачиваем зомби в сторону движения
         self.angle = math.atan2(move_y, move_x)
-        # Перемещаем врага с коллизиями (для врагов учитываются закрытые досками окна)
+        # Перемещаем врага с коллизиями для врагов учитываются закрытые досками окна
         self.x, self.y = game_map.resolve_circle_move(
             self.x,
             self.y,
