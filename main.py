@@ -87,7 +87,7 @@ class Game:
         self.state = STATE_MENU  # Начальное состояние игры
         self.menu_index = 0  # Текущий выбранный пункт меню
 
-        # Игровые объекты (инициализируются при старте новой игры)
+        # Игровые объекты инициализируются при старте новой игры
         self.game_map = None
         self.navgrid = None
         self.pathfinder = None
