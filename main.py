@@ -18,6 +18,12 @@ from settings import (
     BOARD_HITS,
     COLOR_BG,
     COLOR_UI,
+    COLOR_UI_WARM,
+    MENU_PANEL_BORDER,
+    MENU_PANEL_COLOR,
+    MENU_MUTED_COLOR,
+    MENU_SELECTED_COLOR,
+    COLOR_UI_ACCENT,
     FPS,
     GAME_TITLE,
     HEIGHT,
@@ -30,7 +36,6 @@ from settings import (
     HUD_X,
     MAP_HEIGHT,
     MAP_WIDTH,
-    MENU_DISABLED_COLOR,
     MENU_FIRST_ITEM_Y,
     MENU_FONT_SIZE,
     MENU_HINT_Y_OFFSET,
@@ -43,7 +48,6 @@ from settings import (
     PLAYER_VISIBILITY_FADE,
     PLAYER_VISIBILITY_FADE_STEPS,
     PLAYER_VISIBILITY_RADIUS,
-    COLOR_UI_ACCENT,
     WIDTH,
 )
 from sound_manager import SoundManager
@@ -471,6 +475,107 @@ class Game:
         surface = font.render(text, True, color)
         self.screen.blit(surface, surface.get_rect(center=(WIDTH // 2, y)))
 
+    def _draw_menu_backdrop(self) -> None:
+        """Рисует отдельный фон главного меню в стиле ночного убежища."""
+        top_color = (5, 12, 27)
+        bottom_color = (25, 13, 42)
+        for y in range(HEIGHT):
+            ratio = y / max(1, HEIGHT - 1)
+            color = tuple(
+                int(top_color[index] + (bottom_color[index] - top_color[index]) * ratio)
+                for index in range(3)
+            )
+            pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+
+        grid = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for x in range(0, WIDTH, 64):
+            pygame.draw.line(grid, (75, 172, 195, 24), (x, 0), (x, HEIGHT))
+        for y in range(0, HEIGHT, 64):
+            pygame.draw.line(grid, (75, 172, 195, 20), (0, y), (WIDTH, y))
+        self.screen.blit(grid, (0, 0))
+
+        # Луна и силуэты домов добавляют глубину, не отвлекая от меню.
+        pygame.draw.circle(self.screen, (33, 75, 103), (WIDTH - 150, 120), 72)
+        pygame.draw.circle(self.screen, (10, 23, 43), (WIDTH - 125, 101), 72)
+        skyline = [
+            (0, 560), (100, 560), (100, 500), (175, 500), (175, 540),
+            (260, 540), (260, 470), (350, 470), (350, 535), (455, 535),
+            (455, 490), (530, 490), (530, 555), (640, 555), (640, 515),
+            (735, 515), (735, 545), (840, 545), (840, 480), (930, 480),
+            (930, 535), (1025, 535), (1025, 460), (1120, 460), (1120, 535),
+            (1280, 535), (1280, 720), (0, 720),
+        ]
+        pygame.draw.polygon(self.screen, (6, 12, 25), skyline)
+        for x, y in ((145, 520), (291, 493), (493, 511), (675, 536), (965, 510), (1158, 490)):
+            pygame.draw.rect(self.screen, (242, 158, 76), (x, y, 8, 12))
+
+        for x, y, radius in ((110, 100, 2), (250, 168, 1), (430, 90, 2),
+                             (760, 130, 1), (1050, 210, 2), (1180, 70, 1)):
+            pygame.draw.circle(self.screen, (122, 221, 235), (x, y), radius)
+
+    def _draw_menu_panel(self, title: str, subtitle: str = "") -> None:
+        """Рисует панель меню и интерактивные пункты."""
+        panel = pygame.Rect(300, 82, 680, 548)
+        pygame.draw.rect(self.screen, MENU_PANEL_COLOR, panel, border_radius=22)
+        pygame.draw.rect(self.screen, MENU_PANEL_BORDER, panel, width=2, border_radius=22)
+        pygame.draw.line(
+            self.screen,
+            COLOR_UI_ACCENT,
+            (panel.left + 34, panel.top + 24),
+            (panel.right - 34, panel.top + 24),
+            3,
+        )
+
+        if self.state == STATE_MENU:
+            self._draw_centered_text("NIGHT SIEGE", self.title_font, MENU_TITLE_Y)
+            self._draw_centered_text(
+                "LAST STAND",
+                self.menu_font,
+                MENU_TITLE_Y + 58,
+                COLOR_UI_ACCENT,
+            )
+        else:
+            title_color = COLOR_UI_WARM if self.state == STATE_GAME_OVER else COLOR_UI
+            self._draw_centered_text(title.upper(), self.title_font, MENU_TITLE_Y + 20, title_color)
+
+        if subtitle:
+            self._draw_centered_text(subtitle, self.small_font, MENU_SUBTITLE_Y + 42, MENU_MUTED_COLOR)
+
+        items = self._menu_items()
+        card_left = panel.left + 50
+        card_width = panel.width - 100
+        card_height = 44
+        for index, (label, _, enabled) in enumerate(items):
+            y = MENU_FIRST_ITEM_Y + 6 + index * MENU_ITEM_GAP
+            card = pygame.Rect(card_left, y - card_height // 2, card_width, card_height)
+            selected = index == self.menu_index
+            if selected:
+                pygame.draw.rect(self.screen, MENU_SELECTED_COLOR, card, border_radius=10)
+                pygame.draw.rect(self.screen, COLOR_UI_ACCENT, card, width=1, border_radius=10)
+                pygame.draw.rect(
+                    self.screen,
+                    COLOR_UI_WARM,
+                    (card.left, card.top + 8, 4, card.height - 16),
+                    border_radius=2,
+                )
+            color = COLOR_UI if enabled else MENU_MUTED_COLOR
+            text_surface = self.menu_font.render(label.upper(), True, color)
+            text_rect = text_surface.get_rect(center=card.center)
+            self.screen.blit(text_surface, text_rect)
+
+        self._draw_centered_text(
+            "W/S или стрелки — выбор     Enter — подтвердить     Esc — назад",
+            self.small_font,
+            HEIGHT - MENU_HINT_Y_OFFSET - 18,
+            MENU_MUTED_COLOR,
+        )
+        self._draw_centered_text(
+            "NIGHTFALL PROTOCOL  //  SHELTER 07",
+            self.small_font,
+            HEIGHT - MENU_HINT_Y_OFFSET + 10,
+            COLOR_UI_ACCENT,
+        )
+
     def _draw_menu(self, title: str, subtitle: str = "") -> None:
         """
         Отрисовывает интерфейс меню поверх игрового экрана (с полупрозрачным затемнением).
@@ -478,51 +583,29 @@ class Game:
         :param title: Главный заголовок меню.
         :param subtitle: Подзаголовок меню.
         """
-        # Создаем полупрозрачную маску затемнения игрового фона
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, MENU_OVERLAY_ALPHA))
-        self.screen.blit(overlay, (0, 0))
-
-        # Отрисовываем заголовки
-        self._draw_centered_text(title, self.title_font, MENU_TITLE_Y)
-        if subtitle:
-            self._draw_centered_text(subtitle, self.small_font, MENU_SUBTITLE_Y)
-
-        # Отрисовываем пункты меню с выделением текущего стрелочками
-        items = self._menu_items()
-        y = MENU_FIRST_ITEM_Y
-        for index, (label, _, enabled) in enumerate(items):
-            prefix = "> " if index == self.menu_index else "  "
-            prefix_end = " <" if index == self.menu_index else "  "
-            color = COLOR_UI if enabled else MENU_DISABLED_COLOR
-            self._draw_centered_text(
-                f"{prefix}{label}{prefix_end}", self.menu_font, y, color
-            )
-            y += MENU_ITEM_GAP
-
-        # Отрисовываем подсказку по управлению внизу экрана
-        self._draw_centered_text(
-            "W/S или стрелки - выбор, Enter - подтвердить, Esc - назад",
-            self.small_font,
-            HEIGHT - MENU_HINT_Y_OFFSET,
-        )
+        if self.state == STATE_MENU:
+            self._draw_menu_backdrop()
+        else:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, MENU_OVERLAY_ALPHA))
+            self.screen.blit(overlay, (0, 0))
+        self._draw_menu_panel(title, subtitle)
 
     def _draw(self) -> None:
         """
         Главный метод отрисовки кадра. Выбирает, что рисовать в зависимости от состояния.
         """
-        if self.game_map is not None:
-            self._draw_game()
-        else:
-            self.screen.fill(COLOR_BG)
-
-        # Рисуем оверлей меню поверх игры, если игра остановлена или завершена
         if self.state == STATE_MENU:
             self._draw_menu(GAME_TITLE, "Выживи против волн зомби и набери максимум очков")
-        elif self.state == STATE_PAUSED:
-            self._draw_menu("Пауза", "Игра остановлена")
-        elif self.state == STATE_GAME_OVER:
-            self._draw_menu("Game Over", "Зомби добрались до тебя")
+        else:
+            if self.game_map is not None:
+                self._draw_game()
+            else:
+                self.screen.fill(COLOR_BG)
+            if self.state == STATE_PAUSED:
+                self._draw_menu("Пауза", "Игра остановлена")
+            elif self.state == STATE_GAME_OVER:
+                self._draw_menu("Game Over", "Зомби добрались до тебя")
 
         # Переключаем буфер экрана для отображения кадра
         pygame.display.flip()

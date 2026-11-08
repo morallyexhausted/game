@@ -24,7 +24,7 @@ PLAYER_AIM_WIDTH = 3
 PLAYER_VISIBILITY_RADIUS = 200  # Радиус полной видимости вокруг игрока
 PLAYER_VISIBILITY_FADE = 140    # Ширина области размытия темноты
 PLAYER_VISIBILITY_FADE_STEPS = 10
-PLAYER_STEP_SOUND = "steps.mp3"
+PLAYER_STEP_SOUND = "steps_neon.wav"
 PLAYER_STEP_SOUND_VOLUME = 0.35
 DIAGONAL_SCALE = 0.707  # Множитель скорости при движении по диагонали
 
@@ -36,7 +36,7 @@ BULLET_RADIUS = 5
 BULLET_MAX_DISTANCE = 2000
 BULLET_MOVE_STEPS = 8  # Количество шагов проверки коллизий за один кадр (для предотвращения прохождения сквозь стены)
 BULLET_DAMAGE = 1
-BULLET_SHOT_SOUND = "shoot.mp3"
+BULLET_SHOT_SOUND = "shot_neon.wav"
 BULLET_SHOT_SOUND_VOLUME = 0.45
 
 # Параметры врагов (зомби)
@@ -55,7 +55,7 @@ ENEMY_HP_BAR_HEIGHT = 4
 ENEMY_HP_BAR_OFFSET = ENEMY_SPRITE_SIZE // 2 + 8
 ENEMY_HP_BAR_BG = (70, 20, 20)
 ENEMY_HP_BAR_FILL = (220, 40, 40)
-ZOMBIE_AMBIENT_SOUND = "zombie_grunts.mp3"
+ZOMBIE_AMBIENT_SOUND = "zombie_ambient_neon.wav"
 ZOMBIE_AMBIENT_SOUND_VOLUME = 0.25
 
 # Настройки волн врагов
@@ -84,7 +84,7 @@ BOARD_DRAW_MARGIN = 1
 BOARD_DRAW_INSET = 2
 ZOMBIE_BOARD_ATTACK_COOLDOWN = 1.0  # Задержка между ударами зомби по доскам (в секундах)
 ZOMBIE_BOARD_ATTACK_RANGE = 10  # Дальность атаки зомби по доскам
-BOARD_HIT_SOUND = "board_hit.mp3"
+BOARD_HIT_SOUND = "board_hit_neon.wav"
 BOARD_HIT_SOUND_VOLUME = 0.7
 
 # Параметры сетки навигации (A*)
@@ -125,3 +125,8 @@ COLOR_BULLET = (255, 255, 0)
 COLOR_ENEMY = (200, 50, 50)
 COLOR_UI = (235, 242, 255)
 COLOR_UI_ACCENT = (95, 220, 255)
+COLOR_UI_WARM = (255, 148, 82)
+MENU_PANEL_COLOR = (7, 17, 31)
+MENU_PANEL_BORDER = (44, 178, 205)
+MENU_SELECTED_COLOR = (20, 78, 96)
+MENU_MUTED_COLOR = (120, 145, 160)
