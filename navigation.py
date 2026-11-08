@@ -27,7 +27,7 @@ class NavGrid:
         self.cell_size = NAV_CELL_SIZE
         self.cols = world_width // NAV_CELL_SIZE + 1
         self.rows = world_height // NAV_CELL_SIZE + 1
-        # Двумерный массив флагов блокировки ячеек (True — стена/препятствие)
+        # Двумерный массив флагов блокировки ячеек (True — стена или препятствие)
         self.blocked = [[False] * self.cols for _ in range(self.rows)]
 
     def world_to_cell(self, x: float, y: float) -> Tuple[int, int]:
