@@ -8,6 +8,7 @@ from pathlib import Path
 import pygame
 
 # Абсолютный путь к директории с ресурсами игры
+
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 
