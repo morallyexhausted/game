@@ -78,7 +78,7 @@ class WaveManager:
             if self._is_spawn_free(point, existing_enemies, min_distance):
                 return point
 
-        # Если все стандартные точки заняты, генерируем случайную точку со смещением
+        # Если все стандартные точки заняты генерируем случайную точку со смещением
         base_x, base_y = random.choice(points)
         for _ in range(SPAWN_RETRY_COUNT):
             angle = random.uniform(0, math.tau)
