@@ -45,7 +45,7 @@ def draw_rotated_sprite(
     :param camera: Объект камеры.
     :param angle: Угол поворота в радианах.
     """
-    # Поворачиваем спрайт (переводя радианы в градусы и меняя направление вращения под Pygame)
+    # Поворачиваем спрайт переводя радианы в градусы и меняя направление вращения под Pygame
     rotated = pygame.transform.rotate(sprite, -math.degrees(angle))
     # Получаем прямоугольник повернутого спрайта и центрируем его на экранных координатах объекта
     rect = rotated.get_rect(center=to_screen(x, y, camera))
