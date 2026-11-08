@@ -133,6 +133,6 @@ Night-Siege-Last-Stand/
 ## Технологии
 
 - Python 3.10+
-- Pygame 2.5+
+- Pygame 2.5+ (для Python 3.14 используется совместимый `pygame-ce`)
 - A* pathfinding для движения зомби
 - PNG-текстуры и MP3-звуки из каталога `assets/`
