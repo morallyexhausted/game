@@ -55,7 +55,7 @@ class Player(CircleEntity):
         if not self.alive or self._damage_cooldown > 0:
             return
         self.hp -= amount
-        # Активируем кулдаун получения урона (неуязвимость)
+        # Активируем кулдаун получения урона неуязвимость
         self._damage_cooldown = PLAYER_DAMAGE_COOLDOWN
         if self.hp <= 0:
             self.hp = 0
