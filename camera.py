@@ -31,6 +31,6 @@ class Camera:
         self.x = target.x - WIDTH // 2
         self.y = target.y - HEIGHT // 2
 
-        # Ограничиваем координаты камеры размерами карты
+        # Ограничиваем координаты камеры размерами карты.
         self.x = clamp(self.x, 0, max(0, game_map.width - WIDTH))
         self.y = clamp(self.y, 0, max(0, game_map.height - HEIGHT))
